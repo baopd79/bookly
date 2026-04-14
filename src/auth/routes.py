@@ -8,6 +8,7 @@ from src.auth.schemas import (
     UserLoginModel,
     UserUpdateModel,
     TokenResponseModel,
+    RefreshTokenModel,
 )
 from src.auth.utils import create_access_token, decode_token
 
@@ -46,6 +47,25 @@ async def login_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
         )
     return token_response
+
+
+# router refresh token
+@auth_router.post("/refresh", response_model=TokenResponseModel)
+async def refresh_access_token(
+    token_data: RefreshTokenModel, session: AsyncSession = Depends(get_session)
+):
+    # decode refresh token để lấy payload
+    payload = decode_token(token_data.refresh_token)
+    if payload is None or not payload.get("refresh", False):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
+    # tạo access token mới dựa trên user data trong payload
+    user_data = payload["user"]
+    access_token = create_access_token(user_data, refresh=False)
+    return TokenResponseModel(
+        access_token=access_token, refresh_token=token_data.refresh_token
+    )
 
     # router lấy thông tin user theo uid
 
