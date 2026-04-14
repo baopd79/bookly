@@ -7,6 +7,7 @@ from src.auth.schemas import (
     UserResponseModel,
     UserLoginModel,
     UserUpdateModel,
+    TokenResponseModel,
 )
 import uuid
 
@@ -28,6 +29,21 @@ async def register_user(
             detail=f"Email {user_data.email} already exists",
         )
     return user
+
+
+# router login
+@auth_router.post("/login", response_model=TokenResponseModel)
+async def login_user(
+    login_data: UserLoginModel, session: AsyncSession = Depends(get_session)
+):
+    token_response = await user_service.login_user(
+        login_data.email, login_data.password, session
+    )
+    if not token_response:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
+        )
+    return token_response
 
     # router lấy thông tin user theo uid
 

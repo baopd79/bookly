@@ -67,3 +67,9 @@ class UserUpdateModel(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     birthday: date | None = None
+
+
+class TokenResponseModel(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"

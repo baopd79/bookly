@@ -1,10 +1,13 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
 from src.auth.models import User
-from src.auth.schemas import UserCreateModel, UserUpdateModel
+from src.auth.schemas import UserCreateModel, UserUpdateModel, TokenResponseModel
 from passlib.context import CryptContext
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
+from src.auth.utils import create_access_token, decode_token
+
+from src.config import Config
 
 
 passwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -92,3 +95,30 @@ class UserService:
         await session.commit()
         await session.refresh(user)
         return user
+
+    # hàm login_user có luồng tìm user theo email, nếu không tìm thấy trả về None, nếu tìm thấy thì verify password, nếu verify thất bại trả về None, nếu verify thành công thì tạo access token và refresh token rồi trả về TokenResponseModel chứa 2 token này cùng thông tin user (có thể là UserResponseModel hoặc dict tuỳ theo nhu cầu) để client dùng sau này khi gọi API cần xác thực.
+    async def login_user(
+        self, email: str, password: str, session: AsyncSession
+    ) -> TokenResponseModel | None:
+        user = await self.get_user_by_email(email, session)
+        if not user:
+            return None
+        if not verify_password(password, user.password_hash):
+            return None
+        user_data = {
+            "uid": str(user.uid),
+            "email": user.email,
+            "username": user.username,
+            "role": user.role,
+        }
+        access_token = create_access_token(user_data, refresh=False)
+        refresh_token = create_access_token(
+            user_data,
+            refresh=True,
+            expiry=timedelta(days=Config.REFESH_TOKEN_EXPIRE_DAYS),
+        )
+        return TokenResponseModel(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+        )
