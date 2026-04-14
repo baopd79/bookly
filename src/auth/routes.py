@@ -9,6 +9,8 @@ from src.auth.schemas import (
     UserUpdateModel,
     TokenResponseModel,
 )
+from src.auth.utils import create_access_token, decode_token
+
 import uuid
 
 auth_router = APIRouter()
