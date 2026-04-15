@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.main import get_session
 from src.auth.service import UserService, verify_password
@@ -11,6 +11,7 @@ from src.auth.schemas import (
     RefreshTokenModel,
 )
 from src.auth.utils import create_access_token, decode_token
+from src.errors import EmailAlreadyExistsException, InvalidCredentialsException, InvalidTokenException, UserNotFoundException
 
 import uuid
 
@@ -27,10 +28,7 @@ async def register_user(
 ):  # depend(get_session) để tự động tạo session và truyền vào hàm, không cần phải tạo thủ công
     user = await user_service.create_user(user_data, session)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Email {user_data.email} already exists",
-        )
+        raise EmailAlreadyExistsException(user_data.email)
     return user
 
 
@@ -43,9 +41,7 @@ async def login_user(
         login_data.email, login_data.password, session
     )
     if not token_response:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
-        )
+        raise InvalidCredentialsException()
     return token_response
 
 
@@ -57,9 +53,7 @@ async def refresh_access_token(
     # decode refresh token để lấy payload
     payload = decode_token(token_data.refresh_token)
     if payload is None or not payload.get("refresh", False):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
-        )
+        raise InvalidTokenException()
     # tạo access token mới dựa trên user data trong payload
     user_data = payload["user"]
     access_token = create_access_token(user_data, refresh=False)
@@ -74,9 +68,7 @@ async def refresh_access_token(
 async def get_user(user_uid: uuid.UUID, session: AsyncSession = Depends(get_session)):
     user = await user_service.get_user_by_uid(user_uid, session)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
+        raise UserNotFoundException()
     return user
 
 
@@ -89,7 +81,5 @@ async def update_user(
 ):
     user = await user_service.update_user(user_uid, update_data, session)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
+        raise UserNotFoundException()
     return user

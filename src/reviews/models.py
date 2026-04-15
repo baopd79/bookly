@@ -19,10 +19,12 @@ class Review(SQLModel, table=True):
     )
     book_uid: uuid.UUID = Field(foreign_key="books.uid")
     user_uid: uuid.UUID = Field(foreign_key="user_accounts.uid")
-    rating: int = Field(sa_column=Column(pg.INTEGER, nullable=False))
+    rating: int = Field(sa_column=Column(pg.INTEGER, nullable=False, default=5))
     comment: str | None = Field(default=None, nullable=True)
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
-    updated_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+    updated_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP, default=datetime.now, onupdate=datetime.now)
+    )
 
     def __repr__(self) -> str:
         return f"<Review {self.rating} stars for book {self.book_uid}>"
