@@ -9,8 +9,12 @@ from datetime import datetime
 
 class BookService:
     # get all books
-    async def get_all_books(self, session: AsyncSession):
-        statement = select(Book).order_by(Book.created_at.desc())
+    async def get_all_books(
+        self, session: AsyncSession, skip: int = 0, limit: int = 100
+    ):
+        statement = (
+            select(Book).order_by(Book.created_at.desc()).offset(skip).limit(limit)
+        )
         result = await session.exec(statement)
         return result.all()
 

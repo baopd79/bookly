@@ -1,5 +1,5 @@
 # src/books/routes.py
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, Query, status, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.auth.dependencies import get_current_user, require_admin
 from src.db.main import get_session
@@ -14,11 +14,18 @@ book_router = APIRouter()
 book_service = BookService()
 
 
+from fastapi import Query
+
+
 @book_router.get("/", response_model=list[BookResponseModel])
 async def get_all_books(
-    session: AsyncSession = Depends(get_session), current_user=Depends(get_current_user)
+    session: AsyncSession = Depends(get_session),
+    current_user=Depends(get_current_user),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, le=100),
 ):
-    return await book_service.get_all_books(session)
+    skip = (page - 1) * limit
+    return await book_service.get_all_books(session, skip, limit)
 
 
 @book_router.post(
