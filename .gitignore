@@ -15,6 +15,7 @@ venv/
 
 # Environment variables — QUAN TRỌNG, không bao giờ commit
 .env
+.env.test
 
 # IDE
 .vscode/
